@@ -150,3 +150,61 @@ struct OscillatorTests : public juce::UnitTest
 };
 
 static OscillatorTests oscillatorTestsInstance;
+
+#include "../Source/dsp/SubOscillator.h"
+#include "../Source/dsp/NoiseGenerator.h"
+
+struct SubOscTests : public juce::UnitTest
+{
+    SubOscTests() : juce::UnitTest("SubOscillator", "DSP") {}
+
+    void runTest() override
+    {
+        beginTest("Sub at -1 oct is half frequency of note");
+        SubOscillator sub;
+        sub.prepare(44100.0);
+        sub.setWaveform(Oscillator::Waveform::Square);
+        sub.setOctave(-1);
+        sub.setNoteFrequency(440.0f); // note is 440 Hz, sub should be 220 Hz
+        int crossings = 0;
+        float prev = sub.processSample();
+        for (int i = 1; i < 44100; ++i)
+        {
+            float cur = sub.processSample();
+            if (prev < 0.0f && cur >= 0.0f) ++crossings;
+            prev = cur;
+        }
+        expect(std::abs(crossings - 220) <= 5,
+               "Expected ~220 crossings at -1oct/440Hz, got " + juce::String(crossings));
+
+        beginTest("setOctave re-applies frequency without re-setting note");
+        {
+            SubOscillator s2;
+            s2.prepare(44100.0);
+            s2.setWaveform(Oscillator::Waveform::Square);
+            s2.setOctave(0);
+            s2.setNoteFrequency(440.0f); // 440 Hz at octave 0
+            s2.setOctave(-1);            // must now drop to 220 Hz, no re-set of note
+            int c = 0;
+            float p = s2.processSample();
+            for (int i = 1; i < 44100; ++i)
+            {
+                float cur = s2.processSample();
+                if (p < 0.0f && cur >= 0.0f) ++c;
+                p = cur;
+            }
+            expect(std::abs(c - 220) <= 5,
+                   "Expected ~220 crossings after setOctave(-1), got " + juce::String(c));
+        }
+
+        beginTest("Noise stays in [-1, 1]");
+        NoiseGenerator ng;
+        for (int i = 0; i < 44100; ++i)
+        {
+            float s = ng.processSample();
+            expect(s >= -1.0f && s <= 1.0f);
+        }
+    }
+};
+
+static SubOscTests subOscTestsInstance;
