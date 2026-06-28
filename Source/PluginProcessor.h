@@ -1,6 +1,7 @@
 #pragma once
 
 #include <juce_audio_processors/juce_audio_processors.h>
+#include "dsp/VoiceManager.h"
 
 class OpenSynth1AudioProcessor : public juce::AudioProcessor
 {
@@ -34,6 +35,9 @@ public:
 
 private:
     static juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout();
+    void updateVoiceManagerFromParams() noexcept;
+
+    VoiceManager voiceManager;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(OpenSynth1AudioProcessor)
 };

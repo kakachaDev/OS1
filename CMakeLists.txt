@@ -33,6 +33,9 @@ target_sources(OpenSynth1
     PRIVATE
         Source/PluginProcessor.cpp
         Source/PluginEditor.cpp
+        Source/dsp/Oscillator.cpp
+        Source/dsp/SynthVoice.cpp
+        Source/dsp/VoiceManager.cpp
 )
 
 target_compile_definitions(OpenSynth1
