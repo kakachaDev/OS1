@@ -2,12 +2,24 @@ name: Build
 
 on:
   push:
-    branches: [main]
+    branches: [main, master]
   pull_request:
-    branches: [main]
+    branches: [main, master]
+  workflow_dispatch:
+    inputs:
+      platform:
+        description: "Platform to build (manual runs)"
+        type: choice
+        default: all
+        options:
+          - all
+          - linux
+          - windows
+          - macos
 
 jobs:
   build-linux:
+    if: ${{ github.event_name != 'workflow_dispatch' || inputs.platform == 'all' || inputs.platform == 'linux' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -33,6 +45,7 @@ jobs:
         run: ./build/OpenSynth1Tests_artefacts/Release/OpenSynth1Tests
 
   build-windows:
+    if: ${{ github.event_name != 'workflow_dispatch' || inputs.platform == 'all' || inputs.platform == 'windows' }}
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
@@ -49,6 +62,7 @@ jobs:
         run: ./build/OpenSynth1Tests_artefacts/Release/OpenSynth1Tests.exe
 
   build-macos:
+    if: ${{ github.event_name != 'workflow_dispatch' || inputs.platform == 'all' || inputs.platform == 'macos' }}
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
