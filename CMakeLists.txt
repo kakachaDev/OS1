@@ -63,8 +63,10 @@ target_sources(OpenSynth1Tests
         tests/TestMain.cpp
         tests/TestOscillator.cpp
         tests/TestSynthVoice.cpp
+        tests/TestVoiceManager.cpp
         Source/dsp/Oscillator.cpp
         Source/dsp/SynthVoice.cpp
+        Source/dsp/VoiceManager.cpp
 )
 
 target_compile_definitions(OpenSynth1Tests

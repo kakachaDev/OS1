@@ -52,8 +52,9 @@ public:
     // Called by VoiceManager to override frequency (portamento / unison detune)
     void setFrequencyOverride(float hz) noexcept { frequencyHz = hz; applyFrequencies(); }
 
-private:
     static float midiNoteToHz(int note) noexcept;
+
+private:
     void applyFrequencies() noexcept;
 
     Oscillator     osc1up, osc1down; // detune split
