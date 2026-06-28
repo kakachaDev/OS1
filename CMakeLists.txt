@@ -52,3 +52,31 @@ target_link_libraries(OpenSynth1
         juce::juce_recommended_lto_flags
         juce::juce_recommended_warning_flags
 )
+
+# ============================================================
+# TEST TARGET
+# ============================================================
+juce_add_console_app(OpenSynth1Tests PRODUCT_NAME "OpenSynth1Tests")
+
+target_sources(OpenSynth1Tests
+    PRIVATE
+        tests/TestMain.cpp
+        tests/TestOscillator.cpp
+        Source/dsp/Oscillator.cpp
+)
+
+target_compile_definitions(OpenSynth1Tests
+    PRIVATE
+        JUCE_STANDALONE_APPLICATION=1
+        JUCE_USE_CURL=0
+        JUCE_WEB_BROWSER=0
+)
+
+target_link_libraries(OpenSynth1Tests
+    PRIVATE
+        juce::juce_core
+        juce::juce_audio_basics
+    PUBLIC
+        juce::juce_recommended_config_flags
+        juce::juce_recommended_warning_flags
+)
