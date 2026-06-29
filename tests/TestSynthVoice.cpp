@@ -65,7 +65,6 @@ struct SynthVoiceTests : public juce::UnitTest
             p.osc1Semitone = 12;     // one octave up -> ~880 Hz carrier
             p.osc2Level    = 0.0f;   // hear Osc1 only
             p.fmAmount     = 0.5f;   // small FM, average pitch ~ carrier
-            p.pan          = 0.5f;
             v.applyPatch(p);
             v.noteOn(69, 1.0f);      // A4 = 440 Hz -> carrier ~880 Hz
             int crossings = 0;
