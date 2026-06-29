@@ -65,7 +65,8 @@ void SynthVoice::applyFrequencies() noexcept
 
     // Osc1 frequency: base + semitone offset + fine
     float osc1Hz = frequencyHz
-        * std::pow(semitoneRatio, static_cast<float>(patch.osc1Semitone) + patch.osc1Fine);
+        * std::pow(semitoneRatio,
+                   static_cast<float>(patch.osc1Semitone) + patch.osc1Fine + unisonDetune);
 
     // Osc1 detune: split into up and down copies
     float detuneRatio = std::pow(semitoneRatio, patch.osc1Detune * 0.5f);
@@ -121,10 +122,16 @@ std::pair<float, float> SynthVoice::processSample() noexcept
     mono *= velocity;
 
     // Stereo pan (equal power)
-    float panL = std::sqrt(1.0f - patch.pan);
-    float panR = std::sqrt(patch.pan);
+    float panL = std::sqrt(1.0f - voicePan);
+    float panR = std::sqrt(voicePan);
 
     return { mono * panL, mono * panR };
+}
+
+void SynthVoice::setUnisonDetune(float semitones) noexcept
+{
+    unisonDetune = semitones;
+    if (active) applyFrequencies();
 }
 
 float SynthVoice::midiNoteToHz(int note) noexcept

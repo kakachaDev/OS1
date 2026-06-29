@@ -29,7 +29,6 @@ struct VoicePatch
     bool  oscSync       { false };
     bool  ringMod       { false };
 
-    float pan           { 0.5f }; // 0=hard left, 1=hard right
 };
 
 class SynthVoice
@@ -52,6 +51,11 @@ public:
     // Called by VoiceManager to override frequency (portamento / unison detune)
     void setFrequencyOverride(float hz) noexcept { frequencyHz = hz; applyFrequencies(); }
 
+    // Per-voice unison state — set by VoiceManager at note-on and NOT touched by
+    // applyPatch, so a per-block shared-patch refresh cannot wipe unison.
+    void setUnisonDetune(float semitones) noexcept; // semitone offset added to Osc1
+    void setPan(float p) noexcept { voicePan = juce::jlimit(0.0f, 1.0f, p); }
+
     static float midiNoteToHz(int note) noexcept;
 
 private:
@@ -68,6 +72,8 @@ private:
     float   frequencyHz { 440.0f };
     float   osc1BaseHz      { 440.0f }; // Osc1 freq incl. semitone+fine, cached for FM carrier
     float   osc1DetuneRatio { 1.0f };   // cached detune split ratio, preserved under FM
+    float   unisonDetune    { 0.0f };   // per-voice unison detune offset (semitones)
+    float   voicePan        { 0.5f };   // per-voice stereo position (0=L, 1=R)
     bool    active      { false };
     int64_t startTime   { 0 };
     static int64_t globalClock;

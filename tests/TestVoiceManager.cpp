@@ -148,6 +148,109 @@ struct VoiceManagerTests : public juce::UnitTest
                    "note triggered under +2 semitone bend should sound ~494 Hz; got "
                    + juce::String(crossings));
         }
+
+        beginTest("Unison detune/spread survives a per-block applyPatch");
+        {
+            VoiceManager vm;
+            vm.prepare(sr, 512);
+            VoicePatch p;
+            p.osc1Wave  = Oscillator::Waveform::Saw;
+            p.osc1Level = 1.0f;
+            p.osc2Level = 0.0f;
+            vm.applyPatch(p);
+            vm.setUnisonVoices(2);
+            vm.setUnisonDetune(1.0f); // ~1 semitone spread across the pair
+            vm.setUnisonSpread(1.0f); // hard left / hard right
+
+            juce::AudioBuffer<float> b1(2, 512);
+            b1.clear();
+            juce::MidiBuffer on;
+            on.addEvent(juce::MidiMessage::noteOn(1, 69, (juce::uint8) 100), 0);
+            vm.processBlock(on, b1, 512);
+
+            // Simulate the processor re-applying the shared patch every block.
+            vm.applyPatch(p);
+
+            const int M = 4096;
+            juce::AudioBuffer<float> b2(2, M);
+            b2.clear();
+            juce::MidiBuffer empty;
+            vm.processBlock(empty, b2, M);
+
+            double diff = 0.0, energy = 0.0;
+            const float* L = b2.getReadPointer(0);
+            const float* R = b2.getReadPointer(1);
+            for (int i = 0; i < M; ++i)
+            {
+                diff   += std::abs(L[i] - R[i]);
+                energy += std::abs(L[i]) + std::abs(R[i]);
+            }
+            expect(energy > 0.0, "expected audible unison output");
+            // Hard-panned, detuned voices keep L and R clearly different. If a
+            // per-block applyPatch wiped per-voice detune/pan (the bug), both
+            // voices collapse to centre + same pitch and L == R (ratio ~0).
+            expect(diff / energy > 0.2,
+                   "unison spread+detune must survive re-applyPatch; L/R ratio="
+                   + juce::String(diff / energy));
+        }
+
+        beginTest("Poly: two simultaneous notes are finite and audible");
+        {
+            VoiceManager vm;
+            vm.prepare(sr, 512);
+            VoicePatch p;
+            p.osc1Level = 1.0f;
+            p.osc2Level = 0.0f;
+            vm.applyPatch(p);
+            vm.setPlayMode(VoiceManager::PlayMode::Poly);
+            vm.setUnisonVoices(1);
+            juce::AudioBuffer<float> buf(2, 512);
+            buf.clear();
+            juce::MidiBuffer midi;
+            midi.addEvent(juce::MidiMessage::noteOn(1, 60, (juce::uint8) 100), 0);
+            midi.addEvent(juce::MidiMessage::noteOn(1, 67, (juce::uint8) 100), 0);
+            vm.processBlock(midi, buf, 512);
+            expect(bufferIsFinite(buf), "chord output must be finite");
+            expect(bufferRMS(buf) > 0.01f, "two-note chord should be audible");
+        }
+
+        beginTest("Mono: newest note steals the single voice (pitch follows latest)");
+        {
+            VoiceManager vm;
+            vm.prepare(sr, 64);
+            VoicePatch p;
+            p.osc1Wave  = Oscillator::Waveform::Saw;
+            p.osc1Level = 1.0f;
+            p.osc2Level = 0.0f;
+            vm.applyPatch(p);
+            vm.setPlayMode(VoiceManager::PlayMode::Mono);
+
+            juce::AudioBuffer<float> warm(2, 64);
+            warm.clear();
+            juce::MidiBuffer m;
+            m.addEvent(juce::MidiMessage::noteOn(1, 57, (juce::uint8) 100), 0); // A3 ~220 Hz
+            m.addEvent(juce::MidiMessage::noteOn(1, 69, (juce::uint8) 100), 1); // A4 ~440 Hz, steals
+            vm.processBlock(m, warm, 64);
+
+            const int M = static_cast<int>(sr);
+            juce::AudioBuffer<float> buf(2, M);
+            buf.clear();
+            juce::MidiBuffer empty;
+            vm.processBlock(empty, buf, M);
+
+            int crossings = 0;
+            const float* chan = buf.getReadPointer(0);
+            float prev = chan[0];
+            for (int i = 1; i < M; ++i)
+            {
+                if (prev < 0.0f && chan[i] >= 0.0f) ++crossings;
+                prev = chan[i];
+            }
+            // Mono must follow the latest note (~440 Hz), not the stolen 220 Hz one.
+            expect(crossings > 330,
+                   "mono should follow the newest note (~440 Hz); got "
+                   + juce::String(crossings));
+        }
     }
 };
 

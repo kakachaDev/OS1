@@ -65,29 +65,26 @@ void VoiceManager::noteOn(int note, float velocity) noexcept
 
     if (playMode == PlayMode::Mono || playMode == PlayMode::Legato)
     {
-        // Mono: steal all voices, play one
-        bool legato = (playMode == PlayMode::Legato) && (lastPlayedNote >= 0);
+        // Mono/Legato: one voice plays the newest note. Per-sample portamento
+        // glide arrives in Plan 3; for now the voice sits at the correct target pitch.
         allNotesOff();
-        VoicePatch patch = currentPatch;
-        patch.pan = 0.5f;
-        voices[0].applyPatch(patch);
-        voices[0].noteOn(note, velocity);
-        applyBendToVoice(voices[0], note); // start at the current bent pitch
-        if (legato && portamentoTime > 0.0f)
-            voices[0].setFrequencyOverride(portaCurrentHz); // glide will be done per-sample in Plan 3
+        auto& v = voices[0];
+        v.applyPatch(currentPatch);
+        v.setUnisonDetune(0.0f);
+        v.setPan(0.5f);
+        v.noteOn(note, velocity);
+        applyBendToVoice(v, note); // start at the current bent pitch
         lastPlayedNote = note;
-        portaTargetHz = SynthVoice::midiNoteToHz(note); // midiNoteToHz is public (see Step 3)
         return;
     }
 
-    // Poly mode with unison
-    // For each note, allocate unisonVoices slots
+    // Poly mode with unison: allocate unisonVoices slots per note. Per-voice
+    // detune and pan live in dedicated SynthVoice members so a per-block
+    // applyPatch refresh cannot wipe them.
     for (int u = 0; u < unisonVoices; ++u)
     {
         int idx = findFreeVoice();
         if (idx < 0) idx = stealOldestVoice();
-
-        VoicePatch patch = currentPatch;
 
         // Unison detune: spread evenly across [-unisonDetune/2, +unisonDetune/2]
         float detuneOffset = 0.0f;
@@ -99,12 +96,12 @@ void VoiceManager::noteOn(int note, float velocity) noexcept
         if (unisonVoices > 1)
             panPos = unisonSpread * (static_cast<float>(u) / (unisonVoices - 1)) + (1.0f - unisonSpread) * 0.5f;
 
-        patch.osc1Fine  += detuneOffset;
-        patch.pan        = panPos;
-
-        voices[static_cast<size_t>(idx)].applyPatch(patch);
-        voices[static_cast<size_t>(idx)].noteOn(note, velocity);
-        applyBendToVoice(voices[static_cast<size_t>(idx)], note); // start at the current bent pitch
+        auto& v = voices[static_cast<size_t>(idx)];
+        v.applyPatch(currentPatch);
+        v.setUnisonDetune(detuneOffset);
+        v.setPan(panPos);
+        v.noteOn(note, velocity);
+        applyBendToVoice(v, note); // start at the current bent pitch
     }
     lastPlayedNote = note;
 }
@@ -146,7 +143,7 @@ void VoiceManager::setPitchBend(int rawValue) noexcept
 void VoiceManager::applyBendToVoice(SynthVoice& v, int note) noexcept
 {
     // Override the voice's base frequency with the current pitch-bend amount.
-    // Unison detune (carried in each voice's osc1Fine) survives this override.
+    // Unison detune (each voice's unisonDetune) survives this override.
     v.setFrequencyOverride(SynthVoice::midiNoteToHz(note)
                            * std::pow(2.0f, pitchBendSemis / 12.0f));
 }
