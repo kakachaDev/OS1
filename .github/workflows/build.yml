@@ -63,7 +63,11 @@ jobs:
 
   build-macos:
     if: ${{ github.event_name != 'workflow_dispatch' || inputs.platform == 'all' || inputs.platform == 'macos' }}
-    runs-on: macos-latest
+    # Pinned to macos-14 (Xcode 15 / SDK 14): macos-latest is now macOS 15 /
+    # Xcode 16, whose SDK obsoletes CGWindowListCreateImage, which JUCE 7.0.12
+    # still uses — that breaks the juceaide build at Configure. Move back to
+    # macos-latest after bumping JUCE to a macOS-15-SDK-compatible release.
+    runs-on: macos-14
     steps:
       - uses: actions/checkout@v4
         with:
