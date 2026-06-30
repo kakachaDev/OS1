@@ -68,10 +68,12 @@ target_sources(OpenSynth1Tests
         tests/TestSynthVoice.cpp
         tests/TestVoiceManager.cpp
         tests/TestEnvelope.cpp
+        tests/TestFilter.cpp
         Source/dsp/Oscillator.cpp
         Source/dsp/SynthVoice.cpp
         Source/dsp/VoiceManager.cpp
         Source/dsp/Envelope.cpp
+        Source/dsp/SynthFilter.cpp
 )
 
 target_compile_definitions(OpenSynth1Tests
@@ -85,6 +87,7 @@ target_link_libraries(OpenSynth1Tests
     PRIVATE
         juce::juce_core
         juce::juce_audio_basics
+        juce::juce_dsp
     PUBLIC
         juce::juce_recommended_config_flags
         juce::juce_recommended_warning_flags
