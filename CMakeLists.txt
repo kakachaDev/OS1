@@ -67,9 +67,11 @@ target_sources(OpenSynth1Tests
         tests/TestOscillator.cpp
         tests/TestSynthVoice.cpp
         tests/TestVoiceManager.cpp
+        tests/TestEnvelope.cpp
         Source/dsp/Oscillator.cpp
         Source/dsp/SynthVoice.cpp
         Source/dsp/VoiceManager.cpp
+        Source/dsp/Envelope.cpp
 )
 
 target_compile_definitions(OpenSynth1Tests
