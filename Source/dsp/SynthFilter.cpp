@@ -46,13 +46,9 @@ void SynthFilter::setResonance(float r) noexcept
 void SynthFilter::setNoteHz(float hz) noexcept
 {
     noteHz = hz;
-    // Recompute effective cutoff with key tracking
-    float tracked = cutoff + keyTrack * (hz - 440.0f);
-    float eff = juce::jlimit(20.0f, 20000.0f, tracked);
-    svf.setCutoffFrequency(eff);
-    // For Moog and Diode, update with tracked cutoff
-    moog.update(eff, resonance, sampleRate);
-    diode.update(eff, resonance, sampleRate);
+    updateSVFCoeffs();
+    updateMoogCoeffs();
+    updateDiodeCoeffs();
 }
 
 void SynthFilter::reset() noexcept
@@ -92,7 +88,7 @@ void SynthFilter::updateSVFCoeffs() noexcept
 {
     if (type == Type::LP12 || type == Type::HP12 || type == Type::BP12)
     {
-        svf.setCutoffFrequency(cutoff);
+        svf.setCutoffFrequency(effectiveCutoff());
         // JUCE SVF resonance: 1/sqrt(2) = no resonance, higher = more resonance
         // Map our 0-1 to ~0.707 to 10.0
         float q = 0.707f + resonance * 9.293f;
@@ -102,20 +98,20 @@ void SynthFilter::updateSVFCoeffs() noexcept
 
 void SynthFilter::updateMoogCoeffs() noexcept
 {
-    moog.update(cutoff, resonance, sampleRate);
+    moog.update(effectiveCutoff(), resonance, sampleRate);
 }
 
 void SynthFilter::updateDiodeCoeffs() noexcept
 {
-    diode.update(cutoff, resonance, sampleRate);
+    diode.update(effectiveCutoff(), resonance, sampleRate);
 }
 
 float SynthFilter::softClip(float x) noexcept
 {
-    // Piecewise soft clip: tanh approximation
+    // Continuous cubic soft clip: maps ±1→±1 with zero-derivative join
     if (x >  1.0f) return  1.0f;
     if (x < -1.0f) return -1.0f;
-    return x - (x * x * x) / 3.0f;
+    return 1.5f * x - 0.5f * x * x * x;
 }
 
 // ========== Moog Ladder ==========

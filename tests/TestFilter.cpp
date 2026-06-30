@@ -55,6 +55,21 @@ struct FilterTests : public juce::UnitTest
                    "HP12: high=" + juce::String(rmsHigh) + " low=" + juce::String(rmsLow));
         }
 
+        beginTest("BP12 passes mid band, attenuates low and high");
+        {
+            SynthFilter f;
+            f.prepare(sr, 512);
+            f.setType(SynthFilter::Type::BP12);
+            f.setCutoff(1000.0f);
+            f.setResonance(0.3f);
+            float rmsMid  = measureRMS(f, 1000.0f, sr, N);
+            float rmsLow  = measureRMS(f, 100.0f,  sr, N);
+            float rmsHigh = measureRMS(f, 8000.0f, sr, N);
+            expect(rmsMid > rmsLow * 2.0f && rmsMid > rmsHigh * 2.0f,
+                   "BP12: mid=" + juce::String(rmsMid) + " low=" + juce::String(rmsLow)
+                   + " high=" + juce::String(rmsHigh));
+        }
+
         beginTest("LP24 passes low, attenuates high");
         {
             SynthFilter f;

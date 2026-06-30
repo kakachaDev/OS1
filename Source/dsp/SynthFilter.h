@@ -21,6 +21,10 @@ private:
     void updateMoogCoeffs() noexcept;
     void updateDiodeCoeffs() noexcept;
     static float softClip(float x) noexcept;
+    float effectiveCutoff() const noexcept
+    {
+        return juce::jlimit(20.0f, 20000.0f, cutoff + keyTrack * (noteHz - 440.0f));
+    }
 
     Type  type       { Type::LP12 };
     float cutoff     { 8000.0f };
