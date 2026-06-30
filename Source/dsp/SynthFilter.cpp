@@ -115,30 +115,24 @@ float SynthFilter::softClip(float x) noexcept
 }
 
 // ========== Moog Ladder ==========
-// Simplified Huovilainen (2004) model, no oversampling
+// 4 cascaded unity-gain one-pole lowpasses with global resonance feedback.
+// Soft-saturated feedback keeps it bounded up to self-oscillation.
 float SynthFilter::MoogLadder::processSample(float x) noexcept
 {
-    // 4-stage with feedback and tanh saturation
-    x = x - r * buf[3];
-    x = x / (1.0f + std::abs(x));   // Bounded soft clip, |output| always < 1
-
-    float t0 = buf[0];
-    buf[0] = (x     + t0) * p * 0.5f;
-    float t1 = buf[1];
-    buf[1] = (buf[0] + t1) * p * 0.5f;
-    float t2 = buf[2];
-    buf[2] = (buf[1] + t2) * p * 0.5f;
-    float t3 = buf[3];
-    buf[3] = (buf[2] + t3) * p * 0.5f;
-
+    float in = std::tanh(x - r * buf[3]); // feedback + soft clip (analog-ish, bounded)
+    buf[0] += g * (in     - buf[0]);
+    buf[1] += g * (buf[0] - buf[1]);
+    buf[2] += g * (buf[1] - buf[2]);
+    buf[3] += g * (buf[2] - buf[3]);
     return buf[3];
 }
 
 void SynthFilter::MoogLadder::update(float cutoffHz, float res, float sr) noexcept
 {
-    float f = juce::jlimit(20.0f, sr * 0.49f, cutoffHz) / sr;
-    p = f * (1.8f - 0.8f * f) * 2.0f;
-    r = res * 4.0f;
+    float fc = juce::jlimit(20.0f, sr * 0.45f, cutoffHz);
+    g = 1.0f - std::exp(-2.0f * juce::MathConstants<float>::pi * fc / sr);
+    g = juce::jlimit(0.0f, 0.99f, g);
+    r = juce::jlimit(0.0f, 3.99f, res * 4.0f); // <4 stays stable; tanh bounds the rest
 }
 
 // ========== Diode Ladder (TB-303) ==========

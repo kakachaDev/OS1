@@ -41,7 +41,7 @@ private:
     struct MoogLadder
     {
         float buf[4]  { 0,0,0,0 };
-        float p { 0.7f }, r { 0.0f };
+        float g { 0.0f }, r { 0.0f }; // g = one-pole coefficient, r = resonance feedback
         float processSample(float x) noexcept;
         void  update(float cutoffHz, float resonance, float sr) noexcept;
         void  reset() noexcept { std::fill(buf, buf+4, 0.0f); }
